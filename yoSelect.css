@@ -1,0 +1,76 @@
+/**
+ *	Remove above after I merge that with PicoCSS
+ *
+ * This keeps the the arrow on to the top line
+ * instead of movingg down
+ */
+details summary {
+  position: relative;
+}
+details summary::after {
+  float: none;
+  position: absolute;
+  top: calc(var(--pico-block-spacing-vertical) * 0.5);
+  right: calc(var(--pico-block-spacing-horizontal) * 0.5);
+}
+
+/** Remove above after I merge that with PicoCSS */
+details.yo-select.dropdown {
+  margin-bottom: 1rem;
+}
+details.yo-select.dropdown > summary,
+details.yo-select.dropdown > summary:not([role]) {
+  min-height: calc(1rem * var(--pico-line-height) + var(--pico-form-element-spacing-vertical) * 2 + var(--pico-border-width) * 2);
+  height: auto;
+}
+details.yo-select.dropdown > summary.placeholder,
+details.yo-select.dropdown > summary:not([role]).placeholder {
+  opacity: 0.5;
+}
+details.yo-select.dropdown > summary .yo-badge,
+details.yo-select.dropdown > summary:not([role]) .yo-badge {
+  background-color: var(--pico-secondary-background);
+  color: var(--pico-secondary-inverse);
+  padding: calc(var(--pico-block-spacing-vertical) * 0.25) calc(var(--pico-block-spacing-horizontal) * 0.5);
+  border-radius: var(--pico-border-radius);
+}
+details.yo-select.dropdown > summary .yo-badge > button,
+details.yo-select.dropdown > summary:not([role]) .yo-badge > button {
+  padding: 0.025rem 0.25rem;
+  line-height: var(--pico-line-height);
+}
+details.yo-select.dropdown ul {
+  position: relative;
+}
+details.yo-select.dropdown ul li {
+  padding: 0;
+  margin: calc(var(--pico-block-spacing-vertical) * 0.25) 0;
+}
+details.yo-select.dropdown ul li.search-container {
+  padding: 0 calc(var(--pico-block-spacing-horizontal) * 0.25);
+}
+details.yo-select.dropdown ul li.placeholder label.disabled {
+  opacity: 0.5;
+  color: #6c757d;
+  cursor: default;
+  pointer-events: none;
+}
+details.yo-select.dropdown ul li:last-of-type {
+  margin-bottom: 0;
+}
+details.yo-select.dropdown ul li label {
+  display: inline-block;
+  margin: 0;
+  padding: calc(var(--pico-block-spacing-vertical) * 0.5) calc(var(--pico-block-spacing-horizontal) * 0.5);
+  width: 100%;
+  transition: color 0.2s ease;
+}
+details.yo-select.dropdown ul li label:has(input:checked) {
+  color: var(--pico-primary);
+}
+details.yo-select.dropdown ul li label input[type=checkbox],
+details.yo-select.dropdown ul li label input[type=radio] {
+  display: none;
+}
+
+/*# sourceMappingURL=yoSelect.css.map */

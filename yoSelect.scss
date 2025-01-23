@@ -1,0 +1,74 @@
+/**
+ *	Remove above after I merge that with PicoCSS
+ *
+ * This keeps the the arrow on to the top line
+ * instead of movingg down
+ */
+details summary {
+  position: relative;
+	&::after {
+		float: none;
+		position: absolute;
+		top: calc(var(--pico-block-spacing-vertical) * .5);
+		right: calc(var(--pico-block-spacing-horizontal) * .5);
+	}
+}
+/** Remove above after I merge that with PicoCSS */
+
+
+details.yo-select.dropdown {
+	margin-bottom: 1rem;
+	> summary,
+	> summary:not([role]) {
+  	min-height: calc(1rem * var(--pico-line-height) + var(--pico-form-element-spacing-vertical) * 2 + var(--pico-border-width) * 2);
+		height: auto;
+		&.placeholder {
+			opacity: .5;
+		}
+		.yo-badge {
+			background-color: var(--pico-secondary-background);
+		  color: var(--pico-secondary-inverse);
+			padding: calc(var(--pico-block-spacing-vertical) * .25) calc(var(--pico-block-spacing-horizontal) * .5);
+			border-radius: var(--pico-border-radius);
+			> button {
+				padding: .025rem .25rem;
+				line-height: var(--pico-line-height);
+			}
+		}
+	}
+	ul {
+		position: relative;
+		li {
+			padding:0;
+			margin: calc(var(--pico-block-spacing-vertical) * .25)  0;
+			&.search-container {
+				padding:0 calc(var(--pico-block-spacing-horizontal) * .25);
+			}
+			&.placeholder label.disabled {
+				opacity: .5;
+				color: #6c757d;
+			  cursor: default;
+				pointer-events: none;
+			}
+			&:last-of-type {
+				margin-bottom: 0;
+			}
+			label {
+				display: inline-block;
+				margin: 0;
+				padding: calc(var(--pico-block-spacing-vertical) * .5) calc(var(--pico-block-spacing-horizontal) * .5);
+				width: 100%;
+				transition: color 0.2s ease;
+
+				&:has(input:checked) {
+					color: var(--pico-primary);
+				}
+				input[type=checkbox],
+				input[type=radio] {
+					display: none;
+				}
+			}
+		}
+	}
+}
+//sass yoSelect.scss yoSelect.css

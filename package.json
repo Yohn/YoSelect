@@ -1,0 +1,51 @@
+{
+  "name": "@yohns/yoselect",
+  "version": "0.1.0",
+  "description": "A customizable select component with search, multiple selection, image support, and option creation capabilities built on top of PicoCSS with Vanilla JavaScript",
+  "main": "yoSelect.js",
+  "style": "yoSelect.css",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "select",
+    "dropdown",
+    "form",
+    "input",
+    "searchable-select",
+    "multiple-select",
+    "custom-select",
+		"picocss",
+		"tags",
+		"select-tags",
+		"select-multiple",
+		"select-search",
+		"select-image",
+		"select-create",
+    "vanilla-js"
+  ],
+  "author": "Yohn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Yohn/YoSelect"
+  },
+  "bugs": {
+    "url": "https://github.com/Yohn/YoSelect/issues"
+  },
+  "homepage": "https://github.com/Yohn/YoSelect#readme",
+  "files": [
+    "yoSelect.js",
+    "yoSelect.css",
+    "yoSelect.scss",
+    "index.html",
+    "README.md",
+		"LICENSE"
+  ],
+  "dependencies": {
+		"@yohns/picocss": "^2.2.8"
+	},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

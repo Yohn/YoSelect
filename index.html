@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<link rel="icon" type="image/svg+xml" href="/vite.svg" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Yohn/PicoCSS@2.2.8/css/pico.lime.css">
+	<link rel="stylesheet" href="yoSelect.css">
+	<title>YoSelect by Yohn</title>
+</head>
+
+<body>
+	<div class="container-fluid">
+		<div class="row-fluid">
+			<div class="col-8 offset-2">
+				<h1>YoSelect</h1>
+				<select class="yoSelect" data-yo-search="true" data-yo-clearable="true" data-yo-creatable="true">
+					<option value="">Select a country</option>
+					<option value="us" data-yo-img="https://flagcdn.com/w40/us.png">United States</option>
+					<option value="gb" data-yo-img="https://flagcdn.com/w40/gb.png">United Kingdom</option>
+					<option value="fr" data-yo-img="https://flagcdn.com/w40/fr.png">France</option>
+					<option value="de" data-yo-img="https://flagcdn.com/w40/de.png">Germany</option>
+					<option value="it" data-yo-img="https://flagcdn.com/w40/it.png">Italy</option>
+				</select>
+				<h2>YoSelect Component Demo</h2>
+
+				<h3>Searchable Tags with Create Option</h3>
+				<select id="tags" multiple search creatable>
+					<option value="frontend">Frontend</option>
+					<option value="backend">Backend</option>
+					<option value="database">Database</option>
+					<option value="api">API</option>
+					<option value="testing">Testing</option>
+					<option value="devops">DevOps</option>
+				</select>
+
+				<hr>
+
+				<h3>Basic Single Select with Search</h3>
+				<select id="countries" data-yo-search="true">
+					<option value="">Select a country</option>
+					<option value="us" data-yo-img="https://flagcdn.com/w40/us.png">United States</option>
+					<option value="gb" data-yo-img="https://flagcdn.com/w40/gb.png">United Kingdom</option>
+					<option value="fr" data-yo-img="https://flagcdn.com/w40/fr.png">France</option>
+					<option value="de" data-yo-img="https://flagcdn.com/w40/de.png">Germany</option>
+					<option value="it" data-yo-img="https://flagcdn.com/w40/it.png">Italy</option>
+					<option value="es" data-yo-img="https://flagcdn.com/w40/es.png">Spain</option>
+					<option value="pt" data-yo-img="https://flagcdn.com/w40/pt.png">Portugal</option>
+					<option value="nl" data-yo-img="https://flagcdn.com/w40/nl.png">Netherlands</option>
+					<option value="be" data-yo-img="https://flagcdn.com/w40/be.png">Belgium</option>
+					<option value="ch" data-yo-img="https://flagcdn.com/w40/ch.png">Switzerland</option>
+				</select>
+
+				<h3>Multiple Select with Search and Create</h3>
+				<select id="technologies" multiple data-yo-search="true" data-yo-creatable="true">
+					<option value="js"
+						data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg">
+						JavaScript
+					</option>
+					<option value="ts"
+						data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg">
+						TypeScript
+					</option>
+					<option value="react"
+						data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg">
+						React</option>
+					<option value="vue" data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg">
+						Vue.js</option>
+					<option value="angular"
+						data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/angularjs/angularjs-original.svg">Angular
+					</option>
+					<option value="node"
+						data-yo-img="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg">
+						Node.js</option>
+				</select>
+			</div>
+		</div>
+	</div>
+	<script src="yoSelect.js"></script>
+	<script>
+		// Initialize selects with custom configurations
+		// Initialize selects with custom configurations
+		const countrySelect = new YoSelect(document.querySelector('#countries'), {
+			search: true,  // Enable search explicitly
+			searchPlaceholder: 'Search countries...',
+			noResultsPlaceholder: 'No countries found'
+		});
+
+		const techSelect = new YoSelect(document.querySelector('#technologies'), {
+			search: true,  // Enable search explicitly
+			creatable: true,
+			searchPlaceholder: 'Search technologies...',
+			noResultsPlaceholder: 'No technologies found',
+			classTag: 'tech-tag'
+		});
+
+		const tagSelect = new YoSelect(document.querySelector('#tags'), {
+			searchPlaceholder: 'Search or create tags...',
+			noResultsPlaceholder: 'No matching tags',
+			addOptionPlaceholder: 'Press Enter to create "<strong>[searched-term]</strong>" tag',
+			classTag: 'tag-badge'
+		});
+	</script>
+</body>
+
+</html>
