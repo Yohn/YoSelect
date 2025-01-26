@@ -3,7 +3,7 @@
  *
  * This keeps the the arrow on to the top line
  * instead of movingg down
- */
+ * /
 details summary {
   position: relative;
 	&::after {
@@ -33,6 +33,19 @@ details.yo-select.dropdown {
 			> button {
 				padding: .025rem .25rem;
 				line-height: var(--pico-line-height);
+			}
+		}
+		.yo-clear-btn {
+			background: none;
+			border: none;
+			padding: 0 4px;
+			cursor: pointer;
+			font-size: 1.2em;
+			color: var(--pico-primary-background);
+			margin-left: auto;
+
+			&:hover {
+				color: var(--pico-primary-hover-background);
 			}
 		}
 	}
