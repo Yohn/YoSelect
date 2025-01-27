@@ -1,6 +1,6 @@
 {
   "name": "@yohns/yoselect",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "A customizable select component with search, multiple selection, image support, and option creation capabilities built on top of PicoCSS with Vanilla JavaScript",
   "main": "yoSelect.js",
   "style": "yoSelect.css",
