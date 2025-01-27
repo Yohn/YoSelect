@@ -5,6 +5,7 @@ class YoSelect {
 			search: false,                    // Enable search functionality
 			creatable: false,                 // Allow creating new options
 			clearable: false,                 // Allow clearing selection
+			delimiter: ',',
 			maxHeight: '360px',              // Max height of dropdown
 			classTag: '',                    // Custom class for tags
 			searchPlaceholder: 'Search..',    // Search input placeholder
@@ -48,11 +49,12 @@ class YoSelect {
 		this.options = this.#mergeConfig(this.defaultConfig, config);
 
 		// Validate element
-		if (!(element instanceof HTMLSelectElement)) {
+		if (!(element instanceof HTMLSelectElement) && !(element instanceof HTMLInputElement)) {
 			throw new Error('YoSelect: First argument must be a SELECT element');
 		}
 
 		this.element = element;
+		this.isInputElement = element instanceof HTMLInputElement;
 		this.#setupProperties();
 		this.#createElements();
 		this.init();
@@ -71,11 +73,45 @@ class YoSelect {
 
 	// Private methods (using # prefix)
 	#setupProperties() {
+		// Get config from data attributes first, then fall back to options object
 		this.isMultiple = this.element.hasAttribute('multiple');
 		this.isSearchable = this.element.hasAttribute('data-yo-search') || this.options.search;
 		this.isCreatable = this.element.hasAttribute('data-yo-creatable') || this.options.creatable;
 		this.isClearable = this.element.hasAttribute('data-yo-clearable') || this.options.clearable;
 		this.isDisabled = this.element.disabled || this.options.disabled;
+
+		// Get other config options from data attributes
+		const dataConfig = {
+			delimiter: this.element.dataset.yoDelimiter,
+			maxHeight: this.element.dataset.yoMaxHeight,
+			classTag: this.element.dataset.yoClassTag,
+			searchPlaceholder: this.element.dataset.yoSearchPlaceholder,
+			noResultsPlaceholder: this.element.dataset.yoNoResultsPlaceholder,
+			addOptionPlaceholder: this.element.dataset.yoAddOptionPlaceholder,
+			itemClass: this.element.dataset.yoItemClass,
+			maxItems: this.element.dataset.yoMaxItems ? parseInt(this.element.dataset.yoMaxItems) : null,
+			minItems: this.element.dataset.yoMinItems ? parseInt(this.element.dataset.yoMinItems) : null,
+			maxCreateLength: this.element.dataset.yoMaxCreateLength ? parseInt(this.element.dataset.yoMaxCreateLength) : null,
+			minCreateLength: this.element.dataset.yoMinCreateLength ? parseInt(this.element.dataset.yoMinCreateLength) : null,
+			sortSelected: this.element.hasAttribute('data-yo-sort-selected'),
+			searchMinLength: this.element.dataset.yoSearchMinLength ? parseInt(this.element.dataset.yoSearchMinLength) : null,
+			searchDelay: this.element.dataset.yoSearchDelay ? parseInt(this.element.dataset.yoSearchDelay) : null,
+			closeOnSelect: this.element.hasAttribute('data-yo-close-on-select'),
+			allowHTML: this.element.hasAttribute('data-yo-allow-html'),
+			placeholder: this.element.dataset.yoPlaceholder,
+			dropdownPosition: this.element.dataset.yoDropdownPosition,
+			imageWidth: this.element.dataset.yoImageWidth,
+			imageHeight: this.element.dataset.yoImageHeight
+		};
+
+		// Filter out undefined values and merge with options
+		Object.keys(dataConfig).forEach(key => {
+			if (dataConfig[key] !== undefined) {
+				this.options[key] = dataConfig[key];
+			}
+		});
+
+		// Initialize remaining properties
 		this.selectedValues = new Set();
 		this.currentFocusIndex = -1;
 		this.searchInput = null;
@@ -92,6 +128,7 @@ class YoSelect {
 		}
 
 		this.summary = document.createElement('summary');
+		this.summary.className = this.options.customClasses.selected || '';
 
 		this.selectedContainer = document.createElement('div');
 		Object.assign(this.selectedContainer.style, {
@@ -102,6 +139,7 @@ class YoSelect {
 		});
 
 		this.ul = document.createElement('ul');
+		this.ul.className = this.options.customClasses.dropdown || '';
 		Object.assign(this.ul.style, {
 			maxHeight: this.options.maxHeight,
 			overflowY: 'auto'
@@ -268,13 +306,54 @@ class YoSelect {
 	}
 
 	destroy() {
-		window.removeEventListener('scroll', this.#updateDropdownPosition);
-		window.removeEventListener('resize', this.#updateDropdownPosition);
+		// Remove global event listeners
+		window.removeEventListener('scroll', this.#updateDropdownPosition.bind(this));
+		window.removeEventListener('resize', this.#updateDropdownPosition.bind(this));
+
+		// Remove click outside listener
+		document.removeEventListener('click', this.#handleOutsideClick.bind(this));
+
+		// Clean up search input event listeners if exists
+		if (this.searchInput) {
+			this.searchInput.removeEventListener('input', this.#handleSearch.bind(this));
+			this.searchInput.removeEventListener('keydown', this.#handleKeydown.bind(this));
+			this.searchInput.removeEventListener('click', this.#handleSearchClick.bind(this));
+		}
+
+		// Clean up details element event listeners
+		this.details.removeEventListener('toggle', this.#handleToggle.bind(this));
+
+		// Clean up ul event listeners
+		this.ul.removeEventListener('change', this.#handleChange.bind(this));
+
+		// Clean up any clear button listeners
+		if (this.isClearable) {
+			const clearBtn = this.details.querySelector('.yo-clear-btn');
+			if (clearBtn) {
+				clearBtn.removeEventListener('click', this.#handleClear.bind(this));
+			}
+		}
 
 		// Show original select and remove our custom select
 		this.originalSelect.style.display = '';
 		this.originalSelect.removeAttribute('tabindex');
+
+		// Remove the custom select from DOM
 		this.details.remove();
+
+		// Clear any timeouts
+		if (this.searchTimeout) {
+			clearTimeout(this.searchTimeout);
+		}
+
+		// Clear any stored data
+		this.selectedValues = null;
+		this.element = null;
+		this.originalSelect = null;
+		this.details = null;
+		this.summary = null;
+		this.ul = null;
+		this.searchInput = null;
 	}
 
 	focusItem(index) {
@@ -318,12 +397,19 @@ class YoSelect {
 			// Trigger input event to update filtered items
 			this.searchInput.dispatchEvent(new Event('input'));
 		}
+
+		// Add onCreate callback
+		this.#triggerCallback('onCreate', {
+			value: value,
+			input: input
+		});
 	}
 
 	updateSelection(input) {
 		const label = input.closest('label');
 		const text = label.textContent;
 		const img = label.querySelector('img')?.cloneNode(true);
+
 
 		if (this.isMultiple) {
 			if (input.checked) {
@@ -338,7 +424,7 @@ class YoSelect {
 
 				const badge = document.createElement('span');
 				badge.dataset.value = input.value;
-				badge.className = 'yo-badge ' + this.options.customClasses.badge;
+				badge.className = `yo-badge ${this.options.customClasses.badge}`.trim();
 
 				if (img) {
 					img.style.width = this.options.imageWidth;
@@ -401,16 +487,24 @@ class YoSelect {
 			}
 		}
 
-		// Sync with original select
-		if (this.isMultiple) {
-			// Update all options in original select
-			Array.from(this.originalSelect.options).forEach(option => {
-				option.selected = this.selectedValues.has(option.value);
-			});
+		// Sync with original element
+		if (this.isInputElement) {
+			if (this.isMultiple) {
+				const values = Array.from(this.selectedValues);
+				this.element.value = values.join(this.options.delimiter);
+			} else {
+				this.element.value = input.value;
+			}
 		} else {
-			this.originalSelect.value = input.value;
+			if (this.isMultiple) {
+				// Update all options in original select
+				Array.from(this.originalSelect.options).forEach(option => {
+					option.selected = this.selectedValues.has(option.value);
+				});
+			} else {
+				this.originalSelect.value = input.value;
+			}
 		}
-
 		// Dispatch change event on original select
 		this.originalSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
@@ -425,59 +519,80 @@ class YoSelect {
 	}
 
 	buildOptionsList() {
-		// Convert options to list items
-		Array.from(this.element.options).forEach(option => {
-			// Skip empty value options unless it's explicitly a placeholder
-			if (!option.value && !option.hasAttribute('data-placeholder')) {
-				return;
-			}
-			const li = document.createElement('li');
-			const label = document.createElement('label');
+		if (this.isInputElement) {
+			// Handle input element - split value by delimiter
+			const values = this.element.value.split(this.options.delimiter).map(v => v.trim()).filter(Boolean);
+			values.forEach(value => {
+				const li = document.createElement('li');
+				const label = document.createElement('label');
+				label.className = this.options.customClasses.option || '';
 
-			// Add disabled state for empty values
-			if (!option.value) {
-				li.classList.add('placeholder');
-				label.classList.add('disabled');
-			}
+				const input = document.createElement('input');
+				input.type = this.isMultiple ? 'checkbox' : 'radio';
+				input.name = this.element.name || 'select-option';
+				input.value = value;
+				input.hidden = true;
+				label.appendChild(input);
+				label.appendChild(document.createTextNode(value));
+				li.appendChild(label);
+				this.ul.appendChild(li);
+			});
+		} else {
+			// Convert options to list items
+			Array.from(this.element.options).forEach(option => {
+				// Skip empty value options unless it's explicitly a placeholder
+				if (!option.value && !option.hasAttribute('data-placeholder')) {
+					return;
+				}
+				const li = document.createElement('li');
+				const label = document.createElement('label');
+				label.className = this.options.customClasses.option || '';
 
-			if (this.isMultiple) {
-				const checkbox = document.createElement('input');
-				checkbox.type = 'checkbox';
-				checkbox.name = this.element.name || 'select-option';
-				checkbox.value = option.value;
-				checkbox.hidden = true;
-				checkbox.disabled = !option.value; // Disable empty values
-				label.appendChild(checkbox);
-			} else {
-				const radio = document.createElement('input');
-				radio.type = 'radio';
-				radio.hidden = true;
-				radio.name = this.element.name || 'select-option';
-				radio.value = option.value;
-				radio.disabled = !option.value; // Disable empty values
-				label.appendChild(radio);
-			}
+				// Add disabled state for empty values
+				if (!option.value) {
+					li.classList.add('placeholder');
+					label.classList.add('disabled');
+				}
 
-			if (option.dataset.yoImg) {
-				const img = document.createElement('img');
-				img.src = option.dataset.yoImg;
-				img.style.width = '24px';
-				img.style.height = '24px';
-				img.style.marginRight = '0.5rem';
-				label.appendChild(img);
-			}
+				if (this.isMultiple) {
+					const checkbox = document.createElement('input');
+					checkbox.type = 'checkbox';
+					checkbox.name = this.element.name || 'select-option';
+					checkbox.value = option.value;
+					checkbox.hidden = true;
+					checkbox.disabled = !option.value; // Disable empty values
+					label.appendChild(checkbox);
+				} else {
+					const radio = document.createElement('input');
+					radio.type = 'radio';
+					radio.hidden = true;
+					radio.name = this.element.name || 'select-option';
+					radio.value = option.value;
+					radio.disabled = !option.value; // Disable empty values
+					label.appendChild(radio);
+				}
 
-			label.appendChild(document.createTextNode(option.text));
-			li.appendChild(label);
-			this.ul.appendChild(li);
-		});
+				if (option.dataset.yoImg) {
+					const img = document.createElement('img');
+					img.src = option.dataset.yoImg;
+					img.style.width = '24px';
+					img.style.height = '24px';
+					img.style.marginRight = '0.5rem';
+					label.appendChild(img);
+				}
+
+				label.appendChild(document.createTextNode(option.text));
+				li.appendChild(label);
+				this.ul.appendChild(li);
+			});
+		}
 	}
 
 	setupSearchIfNeeded() {
 		if (this.isSearchable) {
 			// Create search container
 			const searchLi = document.createElement('li');
-			searchLi.className = 'search-container ' + this.options.customClasses.search;
+			searchLi.className = `search-container ${this.options.customClasses.search}`.trim();
 
 			// Create and setup search input
 			this.searchInput = document.createElement('input');
@@ -649,49 +764,42 @@ class YoSelect {
 	}
 
 	setupEventListeners() {
-		// Event Listeners for changes
-		this.ul.addEventListener('change', (e) => {
-			const input = e.target;
-			if (input.type === 'checkbox' || input.type === 'radio') {
-				this.updateSelection(input);
-				this.#triggerCallback('onChange', this.getValue());
-			}
-		});
+		// Document click listener for outside clicks
+		document.addEventListener('click', this.#handleOutsideClick.bind(this));
 
-		// Handle details open/close events
-		this.details.addEventListener('toggle', (e) => {
-			if (this.details.open) {
-				this.#triggerCallback('onOpen');
-				// Focus search input if exists
-				if (this.searchInput) {
-					this.searchInput.focus();
-				}
-			} else {
-				this.#triggerCallback('onClose');
-				// Clear search on close if configured
-				if (this.searchInput && this.options.clearSearchOnClose) {
-					this.searchInput.value = '';
-					this.searchInput.dispatchEvent(new Event('input'));
-				}
-			}
-		});
+		// Details toggle listener
+		this.details.addEventListener('toggle', this.#handleToggle.bind(this));
 
-		// Close on outside click
-		document.addEventListener('click', (e) => {
-			if (this.details.open && !this.details.contains(e.target)) {
-				this.details.removeAttribute('open');
-			}
-		});
+		// Change listener for selections
+		this.ul.addEventListener('change', this.#handleChange.bind(this));
 
-		// Handle max items limit
-		if (this.isMultiple && this.options.maxItems) {
+		// If searchable, add search related listeners
+		if (this.searchInput) {
+			this.searchInput.addEventListener('input', this.#handleSearch.bind(this));
+			this.searchInput.addEventListener('keydown', this.#handleKeydown.bind(this));
+			this.searchInput.addEventListener('click', this.#handleSearchClick.bind(this));
+		}
+
+		// Clear button listener if clearable
+		if (this.isClearable) {
+			const clearBtn = this.details.querySelector('.yo-clear-btn');
+			if (clearBtn) {
+				clearBtn.addEventListener('click', this.#handleClear.bind(this));
+			}
+		}
+		/* // Handle max items limit
+		 if (this.isMultiple && this.options.maxItems) {
 			this.ul.addEventListener('change', (e) => {
 				const checkedInputs = this.ul.querySelectorAll('input[type="checkbox"]:checked');
 				if (checkedInputs.length > this.options.maxItems) {
 					e.target.checked = false;
 					this.updateSelection(e.target);
 				}
-			});
+			});*/
+		// Dropdown position listeners
+		if (this.options.dropdownPosition === 'auto') {
+			window.addEventListener('scroll', this.#updateDropdownPosition.bind(this), { passive: true });
+			window.addEventListener('resize', this.#updateDropdownPosition.bind(this), { passive: true });
 		}
 	}
 
@@ -699,6 +807,19 @@ class YoSelect {
 		// Initialize summary content
 		if (this.isMultiple) {
 			this.summary.appendChild(this.selectedContainer);
+
+			// Add clear button if clearable is enabled
+			if (this.isClearable) {
+				const clearBtn = document.createElement('button');
+				clearBtn.type = 'button';
+				clearBtn.className = 'yo-clear-btn';
+				clearBtn.innerHTML = '×';
+				clearBtn.onclick = (e) => {
+					e.stopPropagation();
+					this.clear();
+				};
+				this.summary.appendChild(clearBtn);
+			}
 		} else {
 			// Check for placeholder in the following order:
 			// 1. data-placeholder attribute on selected option
@@ -718,7 +839,22 @@ class YoSelect {
 				this.summary.appendChild(img);
 			}
 
-			this.summary.appendChild(document.createTextNode(placeholderText));
+			const textSpan = document.createElement('span');
+			textSpan.appendChild(document.createTextNode(placeholderText));
+			this.summary.appendChild(textSpan);
+
+			// Add clear button if clearable is enabled
+			if (this.isClearable) {
+				const clearBtn = document.createElement('button');
+				clearBtn.type = 'button';
+				clearBtn.className = 'yo-clear-btn';
+				clearBtn.innerHTML = '×';
+				clearBtn.onclick = (e) => {
+					e.stopPropagation();
+					this.clear();
+				};
+				this.summary.appendChild(clearBtn);
+			}
 
 			// Add placeholder class if showing placeholder
 			if (!defaultOption?.value) {
@@ -744,10 +880,96 @@ class YoSelect {
 
 		return merged;
 	}
+
+	// Private event handler methods
+	#handleOutsideClick(e) {
+		if (this.details.open && !this.details.contains(e.target)) {
+			this.details.removeAttribute('open');
+		}
+	}
+
+	#handleKeydown(e) {
+		const items = Array.from(this.ul.children).filter(li => {
+			return li.style.display !== 'none' &&
+				!li.contains(this.searchInput) &&
+				!li.classList.contains('no-results');
+		});
+
+		switch (e.key) {
+			case 'ArrowDown':
+				e.preventDefault();
+				this.focusItem(Math.min(this.currentFocusIndex + 1, items.length - 1));
+				break;
+
+			case 'ArrowUp':
+				e.preventDefault();
+				this.focusItem(Math.max(this.currentFocusIndex - 1, 0));
+				break;
+
+			case 'Enter':
+				e.preventDefault();
+				if (this.currentFocusIndex >= 0) {
+					const focusedItem = items[this.currentFocusIndex];
+					const input = focusedItem.querySelector('input');
+					if (input) {
+						input.checked = !input.checked;
+						this.updateSelection(input);
+					} else if (focusedItem.classList.contains('create-option')) {
+						this.createNewOption(this.searchInput.value);
+					}
+				} else if (this.isCreatable && this.searchInput.value) {
+					this.createNewOption(this.searchInput.value);
+				}
+				break;
+
+			case 'Escape':
+				e.preventDefault();
+				this.details.removeAttribute('open');
+				break;
+
+			case 'Tab':
+				if (this.options.closeOnTab) {
+					this.details.removeAttribute('open');
+				}
+				break;
+		}
+	}
+
+	#handleSearchClick(e) {
+		e.preventDefault();
+		e.stopPropagation();
+	}
+
+	#handleToggle() {
+		if (this.details.open) {
+			this.#triggerCallback('onOpen');
+			if (this.searchInput) {
+				this.searchInput.focus();
+			}
+		} else {
+			this.#triggerCallback('onClose');
+			if (this.searchInput && this.options.clearSearchOnClose) {
+				this.searchInput.value = '';
+				this.searchInput.dispatchEvent(new Event('input'));
+			}
+		}
+	}
+
+	#handleChange(e) {
+		const input = e.target;
+		if (input.type === 'checkbox' || input.type === 'radio') {
+			this.updateSelection(input);
+		}
+	}
+
+	#handleClear(e) {
+		e.stopPropagation();
+		this.clear();
+	}
 }
 
 // Make YoSelect available globally with version info
 window.YoSelect = Object.assign(YoSelect, {
-	version: '1.1.0',
+	version: '0.1.2',
 	defaults: YoSelect.prototype.defaultConfig
 });
